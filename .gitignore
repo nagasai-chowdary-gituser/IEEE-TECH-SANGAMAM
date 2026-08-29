@@ -17,6 +17,7 @@ backend/uploads/
 backend/processed/
 backend/docuverify.db
 backend/tests/_tmp/
+backend/backend/
 demo/samples/
 
 # Node
