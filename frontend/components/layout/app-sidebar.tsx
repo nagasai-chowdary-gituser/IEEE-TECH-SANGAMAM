@@ -1,8 +1,9 @@
 "use client";
 
-import { FileSearch, History, Landmark, PenLine, Plus, Settings, Shield } from "lucide-react";
+import { FileSearch, History, Landmark, LayoutDashboard, PenLine, Plus, Settings, Shield } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { useHealth } from "@/hooks/use-health";
 import { clearSession, getSession } from "@/lib/session";
@@ -12,9 +13,20 @@ export function AppSidebar() {
   const pathname = usePathname();
   const health = useHealth();
   const apiOk = health.data?.status === "ok";
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    setIsAdmin(getSession()?.role === "admin");
+  }, []);
+  const admin = pathname.startsWith("/admin");
   const compliance = pathname.startsWith("/compliance");
   const signatures = pathname.startsWith("/signatures");
-  const nav = compliance
+  const moduleNav = admin
+    ? [
+        { href: "/forensics", label: "Document forensics", icon: FileSearch },
+        { href: "/compliance", label: "Bid compliance", icon: Landmark },
+        { href: "/signatures", label: "Certificate analyzer", icon: PenLine },
+      ]
+    : compliance
     ? [
         { href: "/compliance", label: "New assessment", icon: Plus },
         { href: "/compliance/history", label: "Compliance history", icon: History },
@@ -34,7 +46,15 @@ export function AppSidebar() {
           { href: "/", label: "Product home", icon: Landmark },
         ];
 
-  const subtitle = compliance ? "Bid compliance" : signatures ? "Certificate analyzer" : "Document forensics";
+  // Admins have no product home: "/" sends them to the admin console.
+  const nav = isAdmin
+    ? [
+        { href: "/admin", label: "Admin console", icon: LayoutDashboard },
+        ...moduleNav.filter((item) => item.href !== "/"),
+      ]
+    : moduleNav;
+
+  const subtitle = admin ? "Admin console" : compliance ? "Bid compliance" : signatures ? "Certificate analyzer" : "Document forensics";
 
   return (
     <aside className="flex w-full shrink-0 flex-col border-b bg-card lg:h-screen lg:w-60 lg:border-b-0 lg:border-r">

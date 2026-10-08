@@ -89,6 +89,16 @@ def issue_session(settings: Settings, *, role: str, name: str, email: str, metho
     )
 
 
+def google_role(settings: Settings, requested_role: str, email: str) -> str:
+    """Google proves the email, not the role. Admin requires an allowlisted email."""
+    if requested_role == "admin" and email.strip().lower() not in settings.admin_email_list:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This Google account is not allowed to sign in as admin.",
+        )
+    return requested_role
+
+
 def verify_password(settings: Settings, username: str, password: str, role: str) -> dict[str, str]:
     if role == "admin":
         expected_user = settings.auth_admin_username.strip()

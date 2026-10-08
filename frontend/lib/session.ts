@@ -42,6 +42,10 @@ export function clearSession(): void {
   }
 }
 
+export function homePathFor(session: AuthSession | null): string {
+  return session?.role === "admin" ? "/admin" : "/";
+}
+
 export function getAccessToken(): string {
   return getSession()?.token ?? "";
 }

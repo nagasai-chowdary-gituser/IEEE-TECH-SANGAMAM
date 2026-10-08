@@ -50,6 +50,27 @@ def require_demo_token(
     )
 
 
+def require_admin(
+    authorization: str | None = Header(default=None),
+    token: str | None = Query(default=None),
+) -> dict:
+    """Admin routes need a signed admin session. The shared demo token is not enough."""
+    settings = get_settings()
+    raw = ""
+    if authorization and authorization.lower().startswith("bearer "):
+        raw = authorization.split(" ", 1)[1].strip()
+    raw = raw or (token or "").strip()
+    if not raw or not settings.auth_secret.strip():
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in as admin to continue.")
+    try:
+        payload = decode_token(raw, settings.auth_secret)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sign in as admin to continue.")
+    if payload.get("role") != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access is required.")
+    return payload
+
+
 def resolve_ai_identity(
     request: Request,
     x_demo_token: str | None = Header(default=None, alias=DEMO_TOKEN_HEADER),

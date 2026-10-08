@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
-from app.api.deps import require_demo_token
+from app.api.deps import require_admin, require_demo_token
+from app.api.routes.admin import router as admin_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.compliance import router as compliance_router
 from app.api.routes.documents import router as documents_router
@@ -13,3 +14,4 @@ api_router.include_router(auth_router, tags=["auth"])
 api_router.include_router(documents_router, tags=["documents"], dependencies=[Depends(require_demo_token)])
 api_router.include_router(compliance_router, tags=["compliance"], dependencies=[Depends(require_demo_token)])
 api_router.include_router(signatures_router, tags=["signatures"], dependencies=[Depends(require_demo_token)])
+api_router.include_router(admin_router, tags=["admin"], dependencies=[Depends(require_admin)])

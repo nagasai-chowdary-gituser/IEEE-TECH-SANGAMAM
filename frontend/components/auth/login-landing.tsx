@@ -5,28 +5,27 @@ import { Shield } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { loginWithPassword } from "@/lib/api";
-import { persistSession, type SessionRole } from "@/lib/session";
+import { homePathFor, persistSession, type SessionRole } from "@/lib/session";
 import { cn } from "@/lib/utils";
+
+function authErrorMessage(authError: string | null): string | null {
+  if (!authError) return null;
+  if (authError === "backend") return "The API is not running. Start uvicorn on port 8000, then try again.";
+  if (authError === "admin_not_allowed") {
+    return "This Google account is not allowed to sign in as admin. Use the admin password, or ask for your email to be added to AUTH_ADMIN_EMAILS.";
+  }
+  return "Google sign-in was cancelled or failed.";
+}
 
 export function LoginLanding({ authError }: { authError: string | null }) {
   const [role, setRole] = useState<SessionRole>("user");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(
-    authError === "backend"
-      ? "The API is not running. Start uvicorn on port 8000, then try again."
-      : authError
-        ? "Google sign-in was cancelled or failed."
-        : null,
-  );
+  const [error, setError] = useState<string | null>(authErrorMessage(authError));
   const [pending, setPending] = useState(false);
 
   useEffect(() => {
-    if (authError === "backend") {
-      setError("The API is not running. Start uvicorn on port 8000, then try again.");
-    } else if (authError) {
-      setError("Google sign-in was cancelled or failed.");
-    }
+    if (authError) setError(authErrorMessage(authError));
   }, [authError]);
 
   async function onSubmit(event: React.FormEvent) {
@@ -36,7 +35,7 @@ export function LoginLanding({ authError }: { authError: string | null }) {
     try {
       const session = await loginWithPassword(username.trim(), password, role);
       persistSession(session);
-      window.location.href = "/";
+      window.location.href = homePathFor(session);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign-in failed.");
       setPending(false);

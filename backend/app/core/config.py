@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     auth_user_password: str = "user123"
     auth_admin_username: str = "admin"
     auth_admin_password: str = "admin123"
+    # Comma-separated Google emails allowed to sign in as admin. Empty = no Google admins.
+    auth_admin_emails: str = ""
     pan_api_timeout_seconds: float = 20.0
     gst_api_timeout_seconds: float = 20.0
     ai_rate_limit_per_minute: int = 20
@@ -69,6 +71,10 @@ class Settings(BaseSettings):
             )
         # Preserve order, drop duplicates.
         return list(dict.fromkeys(origins))
+
+    @property
+    def admin_email_list(self) -> set[str]:
+        return {email.strip().lower() for email in self.auth_admin_emails.split(",") if email.strip()}
 
     @property
     def max_upload_bytes(self) -> int:

@@ -5,6 +5,7 @@ import type {
   AskResponse,
   HealthResponse,
 } from "@/types/analysis";
+import type { AdminOverview } from "@/types/admin";
 import type { ComplianceListResponse, ComplianceResponse } from "@/types/compliance";
 import type {
   ReferenceSignature,
@@ -89,6 +90,14 @@ export async function getSessionMe(token: string): Promise<AuthSession> {
   const session = (await response.json()) as AuthSession;
   persistSession(session);
   return session;
+}
+
+export function getAdminOverview(): Promise<AdminOverview> {
+  return request<AdminOverview>("/api/v1/admin/overview");
+}
+
+export function removeAiBlock(blockId: string): Promise<{ status: string }> {
+  return request(`/api/v1/admin/ai-blocks/${encodeURIComponent(blockId)}`, { method: "DELETE" });
 }
 
 export function getHealth(): Promise<HealthResponse> {

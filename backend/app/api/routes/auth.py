@@ -10,6 +10,7 @@ from app.core.config import Settings, get_settings
 from app.core.tokens import decode_token
 from app.services.auth_google import (
     exchange_google_code,
+    google_role,
     google_start_url,
     issue_session,
     parse_oauth_state,
@@ -84,6 +85,7 @@ def google_complete(
     name = str(profile.get("name") or email or "Google user")
     if not email:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google did not return an email.")
+    role = google_role(settings, role, email)
     token = issue_session(settings, role=role, name=name, email=email, method="google")
     return SessionResponse(token=token, role=role, name=name, email=email, method="google")
 
@@ -104,6 +106,10 @@ def google_callback(
     name = str(profile.get("name") or email or "Google user")
     if not email:
         return RedirectResponse(f"{frontend}/?auth_error=google", status_code=status.HTTP_302_FOUND)
+    try:
+        role = google_role(settings, role, email)
+    except HTTPException:
+        return RedirectResponse(f"{frontend}/?auth_error=admin_not_allowed", status_code=status.HTTP_302_FOUND)
     token = issue_session(settings, role=role, name=name, email=email, method="google")
     return RedirectResponse(f"{frontend}/auth/callback?token={quote(token)}", status_code=status.HTTP_302_FOUND)
 

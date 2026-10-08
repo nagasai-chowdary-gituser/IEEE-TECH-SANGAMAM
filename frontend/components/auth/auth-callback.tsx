@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { getSessionMe } from "@/lib/api";
-import { persistSession } from "@/lib/session";
+import { homePathFor, persistSession } from "@/lib/session";
 
 export function AuthCallback() {
   const params = useSearchParams();
@@ -19,7 +19,7 @@ export function AuthCallback() {
     void getSessionMe(token)
       .then((session) => {
         persistSession(session);
-        router.replace("/");
+        router.replace(homePathFor(session));
       })
       .catch(() => router.replace("/?auth_error=google"));
   }, [params, router]);
