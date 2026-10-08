@@ -21,6 +21,55 @@ def init_database() -> None:
     logger.info("database_initialized")
 
 
+_interrupted_runs_recovered = False
+
+
+def recover_interrupted_runs() -> None:
+    """Fail runs left PENDING/PROCESSING by a previous process.
+
+    Pipelines run in daemon threads, so a restart kills them without updating
+    the database. Runs once per process so it never touches this process's own
+    in-flight work. NEEDS_REGION waits on the user, not a thread, and is kept.
+    """
+    global _interrupted_runs_recovered
+    if _interrupted_runs_recovered:
+        return
+    _interrupted_runs_recovered = True
+
+    from sqlalchemy import update
+
+    from app.core.database import SessionLocal
+    from app.models.compliance import ComplianceAnalysis, ComplianceStatus
+    from app.models.document_analysis import AnalysisStatus, DocumentAnalysis
+    from app.models.signature import SignatureComparison, SignatureComparisonStatus
+    from app.utils.time import utcnow
+
+    message = "Processing was interrupted by a server restart. Upload the document again."
+    targets = (
+        (DocumentAnalysis, [AnalysisStatus.PENDING, AnalysisStatus.PROCESSING], AnalysisStatus.FAILED),
+        (
+            ComplianceAnalysis,
+            [ComplianceStatus.PENDING.value, ComplianceStatus.PROCESSING.value],
+            ComplianceStatus.FAILED.value,
+        ),
+        (
+            SignatureComparison,
+            [SignatureComparisonStatus.PENDING.value, SignatureComparisonStatus.PROCESSING.value],
+            SignatureComparisonStatus.FAILED.value,
+        ),
+    )
+    with SessionLocal() as db:
+        for model, stale, failed in targets:
+            result = db.execute(
+                update(model)
+                .where(model.status.in_(stale))
+                .values(status=failed, pipeline_stage="failed", error_message=message, updated_at=utcnow())
+            )
+            if result.rowcount:
+                logger.warning("recovered_interrupted_runs table=%s count=%s", model.__tablename__, result.rowcount)
+        db.commit()
+
+
 def _ensure_sqlite_columns() -> None:
     if not str(engine.url).startswith("sqlite"):
         return

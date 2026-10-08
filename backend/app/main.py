@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
-from app.core.bootstrap import ensure_storage_directories, init_database
+from app.core.bootstrap import ensure_storage_directories, init_database, recover_interrupted_runs
 from app.core.config import get_settings
 from app.core.logging import configure_logging, get_logger
 
@@ -18,6 +18,7 @@ async def lifespan(_app: FastAPI):
     get_settings.cache_clear()
     ensure_storage_directories()
     init_database()
+    recover_interrupted_runs()
     logger.info("docuverify_api_started env=%s", get_settings().app_env)
     yield
 

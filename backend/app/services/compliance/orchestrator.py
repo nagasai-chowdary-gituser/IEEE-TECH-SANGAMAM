@@ -23,6 +23,7 @@ from app.services.compliance.aggregation import aggregate
 from app.services.compliance.extraction import extract_udyam_fields
 from app.services.compliance.integrity import integrity_from_fusion
 from app.services.compliance.providers import verify_gstin, verify_pan
+from app.services.compliance.report import build_compliance_report
 from app.services.compliance.serializers import to_compliance_response
 from app.services.intelligence.extraction import extract_document_text
 from app.services.orchestration import AnalysisOrchestrator, execute_pipeline
@@ -104,6 +105,20 @@ class ComplianceOrchestrator:
                 )
             )
         return ComplianceListResponse(items=summaries, total=total, limit=limit, offset=offset)
+
+    def get_report(self, compliance_id: str) -> bytes:
+        record = self._require(compliance_id)
+        if record.status == ComplianceStatus.PROCESSING.value:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Compliance analysis is still running.")
+        forensic = self.forensics.repo.get(record.forensic_analysis_id) if record.forensic_analysis_id else None
+        try:
+            return build_compliance_report(record, forensic)
+        except Exception:
+            logger.exception("compliance_report_failed compliance_id=%s", compliance_id)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="The compliance report could not be generated.",
+            )
 
     def _require(self, compliance_id: str) -> ComplianceAnalysis:
         record = self.repo.get(compliance_id)

@@ -59,6 +59,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+export async function fetchProtectedBlob(url: string): Promise<string> {
+  const response = await fetch(url, { headers: authHeaders() });
+  if (!response.ok) {
+    throw new ApiError(await parseError(response), response.status);
+  }
+  return URL.createObjectURL(await response.blob());
+}
+
 export function getApiBaseUrl(): string {
   return API_BASE_URL;
 }
